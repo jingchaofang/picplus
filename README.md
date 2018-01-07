@@ -1,30 +1,12 @@
-# picmin
+# picplus
 
-图片批处理压缩优化工具（图片尺寸和大小）
+happily combine [imagemin](https://github.com/imagemin) and [node-images](https://github.com/zhangyuanwei/node-images)
 
-[pngquant](https://github.com/pornel/pngquant)
+## Related
 
+[image-optimization](https://developers.google.cn/web/fundamentals/performance/optimizing-content-efficiency/image-optimization)
 
-## 相关
+[automating-image-optimization](https://developers.google.cn/web/fundamentals/performance/optimizing-content-efficiency/automating-image-optimization/)
 
-[picdiet](https://www.picdiet.com/zh-cn)
-
-[upyun](https://www.upyun.com/webp)
-
-[tinypng](https://tinypng.com/)
-
-[tinyjpg](https://tinyjpg.com/)
-
-[qiniu](https://developer.qiniu.com/dora/manual/1271/image-thin-body-imageslim)
-
-[webp](https://code.google.com/intl/zh-CN/speed/webp/)
-
-[optimizilla](http://optimizilla.com/)
-
-[2400h](http://www.2400h.com/)
-
-[goimg](https://goimg.io/)
-
-[zhitu](http://zhitu.isux.us/index.php/preview/download)
-
+[webpagetest](https://www.webpagetest.org/)
 

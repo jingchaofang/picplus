@@ -1,3 +1,4 @@
+[pngquant](https://github.com/pornel/pngquant)
 
 ## Kornel Lesiński
 
