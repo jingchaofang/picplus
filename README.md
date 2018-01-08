@@ -1,6 +1,6 @@
 # picplus
 
-happily combine [imagemin](https://github.com/imagemin) and [node-images](https://github.com/zhangyuanwei/node-images)
+happily combine [imagemin](https://github.com/imagemin) and [node-images](https://github.com/zhangyuanwei/node-images) and [sharp](https://github.com/lovell/sharp)
 
 ## Related
 
