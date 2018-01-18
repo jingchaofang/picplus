@@ -16,27 +16,22 @@ const fs = require('fs');
 
 const cli = meow(`
   Usage
-    $ picplus <path|glob> ... --out=build [--plugin=<name> ...]
-    $ picplus <file> > <output>
-    $ cat <file> | picplus > <output>
+    $ picplus -c <path|glob> ... --out=build [--plugin=<name> ...]
+    $ picplus -r <path|file|glob>... --out=build [--width=<number> ...]
 
   Options
-    -v, --version  Print picplus version
-    -r, --resize   Resize the images
-    -c, --compress Compress the images
-    -p, --plugin   Override the imagemin default plugins
-    -o, --out      Output directory
-    -q, --quality  Set the quaility
-    -w, --width    Geometric scaling the image to some pixels width
+    -v, --version   Print picplus version
+    -c, --compress  Compress the images
+      -p, --plugin  Override the imagemin default plugins
+      -q, --quality Set the quaility
+    -r, --resize    Resize the images
+      -w, --width   Geometric scaling the image to the width
+    -o, --out       Output directory
 
   Examples
-    $ picplus --compress images/* --out=build
-    $ picplus -c bulid/* -o=bulid
-    $ picplus -c foo.png > foo-optimized.png
-    $ cat test.gif | picplus -c > anothor-name.gif
-    $ picplus -c --plugin=pngquant foo.png > foo-optimized.png
-    $ picplus --resize --width=100 images/* --out=build
-    $ picplus --r --w=100 images/* -o=build
+    $ picplus -c images/* --out=build
+    $ picplus -c --plugin=pngquant images/* --out=build
+    $ picplus -r --width=100 images/* --out=build
 `, {
   flags: {
     version: {
@@ -62,6 +57,10 @@ const cli = meow(`
     width: {
       type: 'string',
       alias: 'w'
+    },
+    force: {
+      type: 'boolean',
+      alias: 'f'
     }
   }
 });
@@ -84,13 +83,12 @@ const SHARP_SUPPORTED_RESIZE = [
 ];
 
 function resolvePath(p) {
-  return path.resolve(__dirname, p);
+  return path.resolve(process.cwd(), p);
 }
 
 if (cli.flags.out && !fs.existsSync(resolvePath(cli.flags.out))) {
   fs.mkdirSync(resolvePath(cli.flags.out));
 }
-
 
 const requirePlugins = plugins => plugins.map(x => {
   try {
@@ -112,9 +110,13 @@ const compressRun = (input, opts) => {
   const use = requirePlugins(arrify(opts.plugin));
   const spinner = ora('Minifying images');
 
-  if (Buffer.isBuffer(input)) {
-    imagemin.buffer(input, { use }).then(buf => process.stdout.write(buf));
-    return;
+  // if (Buffer.isBuffer(input)) {
+  //   imagemin.buffer(input, { use }).then(buf => process.stdout.write(buf));
+  //   return;
+  // }
+
+  if(!opts.out && opts.force) {
+    opts.out = process.cwd();
   }
 
   if (opts.out) {
@@ -124,18 +126,19 @@ const compressRun = (input, opts) => {
   imagemin(input, opts.out, { use })
     .then(files => {
       if (!opts.out && files.length === 0) {
+        console.error('Cannot be compressed !');
         return;
       }
 
-      if (!opts.out && files.length > 1) {
-        console.error('Cannot write multiple files to stdout, specify a `--out-dir`');
+      if (!opts.out && files.length >= 1) {
+        console.error('Please specify a `--out` or override by `--force`');
         process.exit(1);
       }
 
-      if (!opts.out) {
-        process.stdout.write(files[0].data);
-        return;
-      }
+      // if (!opts.out) {
+      //   process.stdout.write(files[0].data);
+      //   return;
+      // }
 
       spinner.stop();
 
@@ -148,36 +151,35 @@ const compressRun = (input, opts) => {
 };
 
 const resizeHelper = (file, opts) => {
-  const buffer = readChunk.sync(file, 0, 12);
-  // Supported image types: jpg、png、gif、webp、tif、bmp、jxr、psd
   try {
-    let imgext = imageType(buffer).ext;
-    if (!SHARP_SUPPORTED_RESIZE.includes(imgext)) {
-      console.error(`Unsupported: ${file}`);
+    let outdir = resolvePath(opts.out +'/'+ opts.width + '_' + path.basename(file));
+    // Can detect image types: jpg、png、gif、webp、tif、bmp、jxr、psd
+    let imgext = imageType(readChunk.sync(file, 0, 12)).ext;
+    if (SHARP_SUPPORTED_RESIZE.includes(imgext)) {
+      sharp(file).resize(+opts.width).toFile(`${outdir}`).then(data => {
+        console.log(`${file} resized ${data.width}*${data.height}`)
+      }).catch(err => {
+        console.error(`${file} ${err}`);
+      });
     }
-    return sharp(file).resize(+opts.width).toFile(`${opts.out}/icon_${opts.width}.${imgext}`);
-
-    // .then(
-    //   res => { console.log(`Complete: ${file} ${res.width}*${res.height} ${imgext}`) }
-    // ).catch(
-    //   err => { console.log(`${err} at ${file}`) }
-    // );
-  } catch (e) {
-    console.error(`Unsupported image format: ${file}`);
+  } catch(e) {
+    console.error(`${file} the file specified was an invalid or unsupported file format`);
   }
 };
 
 const resizeRun = (input, opts) => {
-  Promise.map(input, item => resizeHelper(item, opts)).then(res => {
-    console.log(`${res.length} images resized`);
-    // if(cli.flags.compress) compressRun(input, opts);
-  }).catch(
-    err => { console.log(err) }
-  );
+  if(!opts.out) {
+    console.error('Please specify a `--out` or `-o`');
+    process.exit(1);
+  }
+
+  for(let i = 0; i < input.length; i++) {
+    resizeHelper(input[i], opts);
+  }
 };
 
 if (!cli.input.length && process.stdin.isTTY) {
-  console.error('There is noting to do!');
+  console.error('Please input some files !');
   process.exit(1);
 }
 
@@ -185,16 +187,18 @@ if (!cli.input.length && process.stdin.isTTY) {
 if (cli.flags.compress && !cli.flags.resize) {
   if (cli.input.length) {
     compressRun(cli.input, cli.flags);
-  } else {
-    getStdin.buffer().then(buf => compressRun(buf, cli.flags));
-  }
+  } 
+  // else {
+  //   getStdin.buffer().then(buf => compressRun(buf, cli.flags));
+  // }
 }
 
 // Resize
 if (cli.flags.resize) {
   if (cli.input.length) {
     resizeRun(cli.input, cli.flags);
-  } else {
-    getStdin.buffer().then(buf => run(buf, cli.flags));
   }
+  // else {
+  //   getStdin.buffer().then(buf => run(buf, cli.flags));
+  // }
 }

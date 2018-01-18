@@ -6,9 +6,13 @@ https://github.com/zhangyuanwei/node-images
 
 ##  bluebird
 
-https://github.com/petkaantonov/bluebird
+[Bluebird](http://bluebirdjs.com)是一个功能齐全的promise库，具有无与伦比的性能。 
 
-http://bluebirdjs.com/docs/api-reference.html
+[github](https://github.com/petkaantonov/bluebird)
+
+[api docs](http://bluebirdjs.com/docs/api-reference.html)
+
+Bluebird is a fully featured promise library with focus on innovative features and performance.
 
 ## sharp
 
